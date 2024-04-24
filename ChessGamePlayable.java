@@ -1,5 +1,3 @@
-package chessgame;
-
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
@@ -11,10 +9,11 @@ import java.io.IOException;
 import java.util.LinkedList;
 
 class Piece {
-    int xp, yp; // x and y positions on the board
+    int xp, yp;
     boolean isWhite;
     String name;
-    LinkedList<Piece> pieceList; // Reference to the main list
+    boolean hasMoved = false;
+    LinkedList<Piece> pieceList;
 
     public Piece(int x, int y, boolean isWhite, String name, LinkedList<Piece> pieceList) {
         this.xp = x;
@@ -22,7 +21,7 @@ class Piece {
         this.isWhite = isWhite;
         this.name = name;
         this.pieceList = pieceList;
-        this.pieceList.add(this); // This now should not throw NPE as we are passing the list
+        this.pieceList.add(this);
     }
 }
 
@@ -77,8 +76,6 @@ public class ChessGame extends JFrame {
         new Piece(4, 7, true, "king", pieces);
     }
 
-
-
     private void setupFrame() {
         setTitle("Chess Game");
         setSize(512, 512);
@@ -124,40 +121,31 @@ public class ChessGame extends JFrame {
             public void mouseClicked(MouseEvent e) {
                 int x = e.getX() / 64;
                 int y = e.getY() / 64;
-                System.out.println("Clicked at board position: (" + x + ", " + y + ")");
-
+                if (selectedPiece != null && selectedPiece.xp == x && selectedPiece.yp == y) {
+                    System.out.println("Deselected " + selectedPiece.name);
+                    selectedPiece = null;
+                    repaint();
+                    return;
+                }
                 if (selectedPiece == null) {
-                    // Select a piece
                     for (Piece p : pieces) {
                         if (p.xp == x && p.yp == y && p.isWhite == whiteTurn) {
                             selectedPiece = p;
-                            System.out.println("Selected piece: " + p.name + " at (" + p.xp + ", " + p.yp + ")");
+                            System.out.println("Selected " + (p.isWhite ? "White" : "Black") + " " + p.name);
                             break;
                         }
                     }
                 } else {
-                    // Check if the same piece is clicked again to deselect
-                    if (selectedPiece.xp == x && selectedPiece.yp == y) {
-                        System.out.println("Deselected piece: " + selectedPiece.name + " at (" + selectedPiece.xp + ", " + selectedPiece.yp + ")");
-                        selectedPiece = null;  // Deselect the piece
-                        repaint();
-                        return;
-                    }
-
-                    // Attempt to move the selected piece
-                    System.out.println("Attempting to move " + selectedPiece.name + " to (" + x + ", " + y + ")");
+                    System.out.println("Attempting to move " + selectedPiece.name + " from (" + selectedPiece.xp + ", " + selectedPiece.yp + ") to (" + x + ", " + y + ")");
                     if (movePiece(selectedPiece, x, y)) {
-                        whiteTurn = !whiteTurn; // Switch turns after a successful move
-                        System.out.println("Move successful");
                         selectedPiece = null;
                     } else {
-                        System.out.println("Move failed");
+                        System.out.println("Move failed or invalid. Still " + (whiteTurn ? "White's" : "Black's") + " turn.");
                     }
                     repaint();
                 }
             }
         });
-
 
 
         add(boardPanel);
@@ -169,12 +157,44 @@ public class ChessGame extends JFrame {
             Piece other = getPieceAt(newX, newY);
             if (other != null) {
                 pieces.remove(other); // Capture the piece
+                System.out.println(p.name + " captured " + other.name + " at (" + newX + ", " + newY + ")");
+            }if (p.name.equals("king") && Math.abs(newX - p.xp) == 2) {
+                performCastling(p, newX, newY); // Handle both king and rook movement
+            } else {
+                p.xp = newX;
+                p.yp = newY;
+                p.hasMoved = true;
             }
-            p.xp = newX;
-            p.yp = newY;
+ {
+                p.xp = newX;
+                p.yp = newY;
+                p.hasMoved = true;
+                System.out.println(p.name + " moved successfully to (" + newX + ", " + newY + ")");
+            }
+
+            // Pawn promotion
+            if (p.name.equals("pawn") && (newY == 0 || newY == 7)) {
+                promotePawn(p);
+            }
+
+            whiteTurn = !whiteTurn; // Toggle turn after a successful move
+            System.out.println("Now it is " + (whiteTurn ? "White's" : "Black's") + " turn.");
             return true;
         }
+        System.out.println("Move invalid: " + p.name + " cannot move to (" + newX + ", " + newY + ")");
         return false;
+    }
+
+
+    private void promotePawn(Piece pawn) {
+        String[] options = new String[]{"Queen", "Rook", "Bishop", "Knight"};
+        int response = JOptionPane.showOptionDialog(null, "Choose piece for promotion:", "Pawn Promotion",
+                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
+                null, options, options[0]);
+        if (response >= 0 && response < options.length) {
+            pawn.name = options[response].toLowerCase();
+            System.out.println("Pawn promoted to " + pawn.name.toUpperCase());
+        }
     }
 
     private Piece getPieceAt(int x, int y) {
@@ -252,8 +272,25 @@ public class ChessGame extends JFrame {
     private boolean isValidKingMove(Piece king, int newX, int newY) {
         int dx = Math.abs(newX - king.xp);
         int dy = Math.abs(newY - king.yp);
-        return dx <= 1 && dy <= 1; // Kings move one square in any direction
+        if (dx <= 1 && dy <= 1) {
+            return true; // Normal king move
+        }
+        // Castling check
+        if (dx == 2 && dy == 0 && !king.hasMoved && !isInCheck(king.isWhite)) {
+            return checkCastling(king, newX, newY); // Check if castling is possible
+        }
+        return false;
     }
+    private boolean checkCastling(Piece king, int newX, int newY) {
+        int direction = (newX > king.xp) ? 1 : -1;
+        int rookX = (direction == 1) ? 7 : 0;
+        Piece rook = getPieceAt(rookX, king.yp);
+        if (rook != null && !rook.hasMoved && isPathClear(king.xp, king.yp, rookX, king.yp)) {
+            return true; // Castling is possible, actual move will be handled elsewhere
+        }
+        return false;
+    }
+
 
     private boolean isPathClear(int startX, int startY, int endX, int endY) {
         int dx = Integer.compare(endX, startX);
@@ -268,6 +305,25 @@ public class ChessGame extends JFrame {
             y += dy;
         }
         return true;
+    }
+    private void performCastling(Piece king, int newX, int newY) {
+        int direction = (newX > king.xp) ? 1 : -1;
+        int rookOrigX = (direction == 1) ? 7 : 0;
+        int rookNewX = king.xp + direction;
+
+        Piece rook = getPieceAt(rookOrigX, king.yp);
+        if (rook != null && !rook.hasMoved && isPathClear(king.xp, king.yp, rookOrigX, king.yp)) {
+            // Execute moves
+            king.xp = newX;
+            king.hasMoved = true;
+            rook.xp = rookNewX;
+            rook.hasMoved = true;
+        }
+    }
+
+    private boolean isInCheck(boolean isWhite) {
+        // Placeholder: Implement check detection logic
+        return false;
     }
 
     public static void main(String[] args) {
