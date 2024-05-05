@@ -1,19 +1,18 @@
 import java.io.*;
 import java.net.*;
-import java.util.concurrent.*;
+import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ChessServer {
     private static final int PORT = 55551;
-    private static final int MAX_CLIENTS = 100; // Define the maximum number of clients
-    private static ExecutorService pool = Executors.newFixedThreadPool(MAX_CLIENTS);
+    private static ExecutorService pool = Executors.newCachedThreadPool();
     static AtomicInteger clientCounter = new AtomicInteger(0);
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = new ServerSocket(PORT);
         System.out.println("Chess Server is running...");
-        ClientHandler.initializeHandlers(MAX_CLIENTS); // Initialize the handlers array
-        ClientHandler.handlers = new ClientHandler[MAX_CLIENTS];  // Create an array to hold client handlers
 
         while (true) {
             try {
@@ -21,7 +20,7 @@ public class ChessServer {
                 Socket clientSocket = serverSocket.accept();
                 
                 int clientNumber = clientCounter.incrementAndGet();  // Get the client number
-                pool.execute(new ClientHandler(clientSocket, clientNumber, ClientHandler.handlers)); // Pass handlers array to the constructor
+                pool.execute(new ClientHandler(clientSocket, clientNumber)); // Pass handlers array to the constructor
                 System.out.println("Client " + clientNumber + " connected.");
             } catch (IOException e) {
                 System.out.println("Error connecting to client: " + e.getMessage());
@@ -44,12 +43,12 @@ class ClientHandler implements Runnable {
     private boolean inGame = false;
     private boolean isWaiting = false;
     private ClientHandler opponent;
-    public static ClientHandler[] handlers;
+    public static Stack<ClientHandler> handlers = new Stack<>();
 
-    public ClientHandler(Socket clientSocket, int clientNumber, ClientHandler[] handlers) {
+    public ClientHandler(Socket clientSocket, int clientNumber) {
         this.clientSocket = clientSocket;
         this.clientNumber = clientNumber;
-        ClientHandler.handlers = handlers;
+        handlers.push(this);
     }
 
     @Override
@@ -66,7 +65,6 @@ class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from client " + clientNumber + ": " + inputLine);
-
                 if (inputLine.equals("requestGame")) {
                     requestGame(out);
                 } else if (inputLine.equals("acceptGame") && opponent != null && !opponent.isInGame()) {
@@ -75,6 +73,7 @@ class ClientHandler implements Runnable {
                     opponent.getOut().println("Game request rejected.");
                 } else if (inputLine.equals("listPlayers") && isWaiting) {
                     listPlayers(out);
+                    System.out.println("Received");
                 } else if (inputLine.startsWith("requestPlayer") && isWaiting) {
                     String[] tokens = inputLine.split(" ");
                     int playerNumber = Integer.parseInt(tokens[1]);
@@ -92,31 +91,30 @@ class ClientHandler implements Runnable {
                     opponent.setOpponent(null);
                 }
                 ChessServer.decrementClientCounter();
-                ChessServer.broadcastClientCounter();
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
     }
 
-    public static void initializeHandlers(int maxClients) {
-        handlers = new ClientHandler[maxClients];
-    }    
-
-    public void listPlayers(PrintWriter out) {
+    public void listPlayers(PrintWriter out) throws IOException {
         for (ClientHandler handler : ClientHandler.handlers) {
             if (handler != null && handler.isWaiting() && handler != this) {
-                try {
-                    handler.getOut().println("Player " + handler.getClientNumber());
-                } catch (IOException e) {
-                    System.out.println("Error sending message to client: " + e.getMessage());
-                }
+                out.println("Player " + handler.getClientNumber());
             }
         }
     }
     
     public void requestPlayer(PrintWriter out, int playerNumber) {
-        ClientHandler handler = ClientHandler.handlers[playerNumber - 1];
+        ClientHandler handler = null;
+        // Iterate over the stack to find the ClientHandler with the specified playerNumber
+        for (ClientHandler clientHandler : handlers) {
+            if (clientHandler.getClientNumber() == playerNumber) {
+                handler = clientHandler;
+                break;
+            }
+        }
+    
         if (handler != null && handler.isWaiting() && handler != this) {
             try {
                 handler.getOut().println("Game request from player " + clientNumber + ". Do you accept? (yes/no)");
@@ -128,8 +126,7 @@ class ClientHandler implements Runnable {
             out.println("Invalid player number.");
         }
     }
-
-    // Other methods unchanged
+    
     public void setOpponent(ClientHandler opponent) {
         this.opponent = opponent;
     }
