@@ -38,12 +38,13 @@ public class ChessServer {
 }
 
 class ClientHandler implements Runnable {
+    public static Stack<ClientHandler> handlers = new Stack<>();  
     private Socket clientSocket;
     private int clientNumber;
     private boolean inGame = false;
     private boolean isWaiting = false;
     private ClientHandler opponent;
-    public static Stack<ClientHandler> handlers = new Stack<>();
+
 
     public ClientHandler(Socket clientSocket, int clientNumber) {
         this.clientSocket = clientSocket;
@@ -78,7 +79,11 @@ class ClientHandler implements Runnable {
                     String[] tokens = inputLine.split(" ");
                     int playerNumber = Integer.parseInt(tokens[1]);
                     requestPlayer(out, playerNumber);
-                } else {
+                } else if (inputLine.equals("disconnect")) {
+                    handlers.remove(this);
+                    break;
+                }
+                else {
                     System.out.println("Invalid command: " + inputLine);
                 }
             }
@@ -161,4 +166,5 @@ class ClientHandler implements Runnable {
     public int getClientNumber() {
         return clientNumber;
     }
+
 }

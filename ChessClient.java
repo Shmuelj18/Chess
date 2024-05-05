@@ -27,9 +27,9 @@ public class ChessClient {
         // Sending messages to the server
         String userInput;
         while ((userInput = stdIn.readLine()) != null) {
-            if (userInput.equalsIgnoreCase("disconnect")) {
-                break;
-            }
+            /*if (userInput.equalsIgnoreCase("disconnect")) {
+                 break;
+             }*/
             out.println(userInput);
         }
 
