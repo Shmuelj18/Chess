@@ -1,3 +1,6 @@
+import java.io.*;
+import java.net.*;
+
 public class ClientHandler implements Runnable {
     private Socket socket;
     private ChessServer server;
@@ -60,7 +63,7 @@ public class ClientHandler implements Runnable {
             processSimpleCommand(command);
         }
     }
-
+    
     private void processSimpleCommand(String command) {
         switch (command) {
             case "LOGIN":
@@ -79,16 +82,6 @@ public class ClientHandler implements Runnable {
                 break;
         }
     }
-
-    public synchronized void requestGame(String requesterId, String targetId) {
-    for (ClientHandler client : clients) {
-        if (client.getClientId().equals(targetId)) {
-            client.sendMessage("Game request from: " + requesterId);
-            return;
-        }
-    }
-}
-    
 
     public boolean isWaiting() {
         return isWaiting;
