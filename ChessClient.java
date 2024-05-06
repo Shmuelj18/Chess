@@ -2,36 +2,44 @@ import java.io.*;
 import java.net.*;
 
 public class ChessClient {
-    private static final String SERVER_ADDRESS = "localhost";  // Use your server IP if different
-    private static final int SERVER_PORT = 55555;
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
+    private BufferedReader stdIn;
+
+    public ChessClient(String address, int port) throws IOException {
+        socket = new Socket(address, port);
+        out = new PrintWriter(socket.getOutputStream(), true);
+        in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        stdIn = new BufferedReader(new InputStreamReader(System.in));
+    }
+
+    public void start() {
+        System.out.println("Connected to server. Enter commands:");
+        new Thread(this::listenToServer).start();
+        try {
+            while (true) {
+                String userInput = stdIn.readLine();
+                out.println(userInput);
+            }
+        } catch (IOException e) {
+            System.out.println("Error reading from user input: " + e.getMessage());
+        }
+    }
+
+    private void listenToServer() {
+        try {
+            String fromServer;
+            while ((fromServer = in.readLine()) != null) {
+                System.out.println("Server: " + fromServer);
+            }
+        } catch (IOException e) {
+            System.out.println("Server connection lost: " + e.getMessage());
+        }
+    }
 
     public static void main(String[] args) throws IOException {
-        Socket socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
-        PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-        BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        BufferedReader stdIn = new BufferedReader(new InputStreamReader(System.in));
-
-        // Thread to read messages from the server
-        new Thread(() -> {
-            try {
-                String serverResponse;
-                while ((serverResponse = in.readLine()) != null) {
-                    System.out.println("Server says: " + serverResponse);
-                }
-            } catch (IOException e) {
-                System.out.println("Server connection lost.");
-            }
-        }).start();
-
-        // Sending messages to the server
-        String userInput;
-        while ((userInput = stdIn.readLine()) != null) {
-            out.println(userInput);
-        }
-
-        socket.close();
-        out.close();
-        in.close();
-        stdIn.close();
+        ChessClient client = new ChessClient("localhost", 5555);
+        client.start();
     }
 }
