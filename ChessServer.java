@@ -20,6 +20,7 @@ public class ChessServer {
                 Socket clientSocket = serverSocket.accept();
                 
                 int clientNumber = clientCounter.incrementAndGet();  // Get the client number
+
                 pool.execute(new ClientHandler(clientSocket, clientNumber)); // Pass handlers array to the constructor
                 System.out.println("Client " + clientNumber + " connected.");
             } catch (IOException e) {
@@ -27,6 +28,7 @@ public class ChessServer {
             }
         }
     }
+    
 
     public static synchronized int getClientCounter() {
         return clientCounter.get();
@@ -51,6 +53,10 @@ class ClientHandler implements Runnable {
         this.clientNumber = clientNumber;
         handlers.push(this);
     }
+
+    public void setClientNumber(int i){
+        clientNumber = i;
+}
 
     @Override
     public void run() {
@@ -80,7 +86,10 @@ class ClientHandler implements Runnable {
                     int playerNumber = Integer.parseInt(tokens[1]);
                     requestPlayer(out, playerNumber);
                 } else if (inputLine.equals("disconnect")) {
+                    out.println("Server Disconnected");
+                    this.clientSocket.close();
                     handlers.remove(this);
+                    updateNames();
                     break;
                 }
                 else {
@@ -165,6 +174,14 @@ class ClientHandler implements Runnable {
 
     public int getClientNumber() {
         return clientNumber;
+    }
+
+    public void updateNames(){
+        for(int i = 0; i < handlers.size();i++){
+            ClientHandler temp = handlers.elementAt(i);
+            int j = i+1;
+            temp.setClientNumber(j);
+        }
     }
 
 }
