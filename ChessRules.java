@@ -1,9 +1,9 @@
 import java.util.ArrayList;
 import java.util.List;
 
-public class ChessGame {
+public class ChessRules {
     private char[][] board;
-    private boolean whiteTurn;
+    private static boolean whiteTurn;
     private boolean whiteKingMoved;
     private boolean blackKingMoved;
     private boolean whiteLeftRookMoved;
@@ -12,9 +12,9 @@ public class ChessGame {
     private boolean blackRightRookMoved;
     private int[] enPassantSquare;
 
-    public ChessGame() {
+    public ChessRules(boolean startingTurn) {
         initializeBoard();
-        whiteTurn = true; // White starts first
+        whiteTurn = startingTurn; // White starts first
         whiteKingMoved = false;
         blackKingMoved = false;
         whiteLeftRookMoved = false;
@@ -27,20 +27,21 @@ public class ChessGame {
     private void initializeBoard() {
         // Initialize the chessboard
         board = new char[][]{
-                {'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'},
-                {'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'},
-                {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-                {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-                {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-                {' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
-                {'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'},
-                {'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}
+                {'0', '1', '2', '3', '4', '5', '6', '7', '8'},
+                {'1', 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'},
+                {'2', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'},
+                {'3', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+                {'4', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+                {'5', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+                {'6', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+                {'7', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'},
+                {'8', 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}
         };
     }
 
     public void printBoard() {
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
                 System.out.print(board[i][j] + " ");
             }
             System.out.println();
@@ -85,7 +86,7 @@ public class ChessGame {
     }
 
     private boolean isValidPosition(int x, int y) {
-        return x >= 0 && x < 8 && y >= 0 && y < 8;
+        return x > 0 && x < 9 && y > 0 && y < 9;
     }
 
     private boolean isValidPawnMove(int startX, int startY, int endX, int endY) {
@@ -98,7 +99,7 @@ public class ChessGame {
                 return true;
             }
             // Double move from starting position
-            if (startX == (Character.isUpperCase(piece) ? 6 : 1) && startX + 2 * direction == endX && board[startX + direction][startY] == ' ' && board[endX][endY] == ' ') {
+            if (startX == (Character.isUpperCase(piece) ? 7 : 2) && startX + 2 * direction == endX && board[startX + direction][startY] == ' ' && board[endX][endY] == ' ') {
                 return true;
             }
         }
@@ -153,13 +154,13 @@ public class ChessGame {
             if (Character.toLowerCase(piece) == 'k') {
                 whiteKingMoved = true;
             } else if (Character.toLowerCase(piece) == 'r') {
-                if (startX == 0 && startY == 0) {
+                if (startX == 1 && startY == 1) {
                     whiteLeftRookMoved = true;
-                } else if (startX == 0 && startY == 7) {
+                } else if (startX == 1 && startY == 8) {
                     whiteRightRookMoved = true;
-                } else if (startX == 7 && startY == 0) {
+                } else if (startX == 8 && startY == 1) {
                     blackLeftRookMoved = true;
-                } else if (startX == 7 && startY == 7) {
+                } else if (startX == 8 && startY == 8) {
                     blackRightRookMoved = true;
                 }
             }
@@ -192,8 +193,8 @@ public class ChessGame {
     private int[] findKingPosition(boolean isWhite) {
         char king = isWhite ? 'K' : 'k';
         int[] position = new int[2];
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 9; j++) {
                 if (board[i][j] == king) {
                     position[0] = i;
                     position[1] = j;
@@ -206,8 +207,8 @@ public class ChessGame {
 
     private boolean hasLegalMoves(int x, int y) {
         char piece = board[x][y];
-        for (int i = 0; i < 8; i++) {
-            for (int j = 0; j < 8; j++) {
+        for (int i = 1; i < 9; i++) {
+            for (int j = 1; j < 1; j++) {
                 if (isValidMove(x, y, i, j)) {
                     char targetPiece = board[i][j];
                     makeMove(x, y, i, j);
@@ -240,7 +241,7 @@ public class ChessGame {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dy = -1; dy <= 1; dy++) {
                 if (dx != 0 || dy != 0) {
-                    for (int i = 1; i < 8; i++) {
+                    for (int i = 1; i < 9; i++) {
                         int newX = x + i * dx;
                         int newY = y + i * dy;
                         if (!isValidPosition(newX, newY)) {
@@ -299,15 +300,15 @@ public class ChessGame {
     public boolean canCastle(boolean isWhite, boolean kingSide) {
         if (isWhite) {
             if (kingSide) {
-                return !whiteKingMoved && !whiteRightRookMoved && board[0][5] == ' ' && board[0][6] == ' ';
+                return !whiteKingMoved && !whiteRightRookMoved && board[1][6] == ' ' && board[1][7] == ' ';
             } else {
-                return !whiteKingMoved && !whiteLeftRookMoved && board[0][1] == ' ' && board[0][2] == ' ' && board[0][3] == ' ';
+                return !whiteKingMoved && !whiteLeftRookMoved && board[1][2] == ' ' && board[1][7] == ' ' && board[1][4] == ' ';
             }
         } else {
             if (kingSide) {
-                return !blackKingMoved && !blackRightRookMoved && board[7][5] == ' ' && board[7][6] == ' ';
+                return !blackKingMoved && !blackRightRookMoved && board[8][6] == ' ' && board[8][7] == ' ';
             } else {
-                return !blackKingMoved && !blackLeftRookMoved && board[7][1] == ' ' && board[7][2] == ' ' && board[7][3] == ' ';
+                return !blackKingMoved && !blackLeftRookMoved && board[8][2] == ' ' && board[8][3] == ' ' && board[8][4] == ' ';
             }
         }
     }
@@ -316,33 +317,33 @@ public class ChessGame {
         if (canCastle(isWhite, kingSide)) {
             if (isWhite) {
                 if (kingSide) {
-                    board[0][6] = 'K';
-                    board[0][4] = ' ';
-                    board[0][5] = 'R';
-                    board[0][7] = ' ';
+                    board[1][7] = 'K';
+                    board[1][5] = ' ';
+                    board[1][6] = 'R';
+                    board[1][8] = ' ';
                     whiteKingMoved = true;
                     whiteRightRookMoved = true;
                 } else {
-                    board[0][2] = 'K';
-                    board[0][4] = ' ';
-                    board[0][3] = 'R';
-                    board[0][0] = ' ';
+                    board[1][3] = 'K';
+                    board[1][5] = ' ';
+                    board[1][4] = 'R';
+                    board[1][1] = ' ';
                     whiteKingMoved = true;
                     whiteLeftRookMoved = true;
                 }
             } else {
                 if (kingSide) {
-                    board[7][6] = 'k';
-                    board[7][4] = ' ';
-                    board[7][5] = 'r';
-                    board[7][7] = ' ';
+                    board[8][7] = 'k';
+                    board[8][5] = ' ';
+                    board[8][6] = 'r';
+                    board[8][8] = ' ';
                     blackKingMoved = true;
                     blackRightRookMoved = true;
                 } else {
-                    board[7][2] = 'k';
-                    board[7][4] = ' ';
-                    board[7][3] = 'r';
-                    board[7][0] = ' ';
+                    board[8][3] = 'k';
+                    board[8][5] = ' ';
+                    board[8][4] = 'r';
+                    board[8][1] = ' ';
                     blackKingMoved = true;
                     blackLeftRookMoved = true;
                 }
@@ -352,24 +353,57 @@ public class ChessGame {
             enPassantSquare[1] = -1;
         }
     }
-
-    public static void main(String[] args) {
-        ChessGame game = new ChessGame();
-        game.printBoard();
-
-        // Example move
-        int startX = 6;
-        int startY = 4;
-        int endX = 4;
-        int endY = 4;
-
+    public static void onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY,int count){
+        System.out.println("/n");
+        int startX = sX;
+        int startY = sY;
+        int endX = eX;
+        int endY = eY;
         if (game.isValidMove(startX, startY, endX, endY)) {
             game.makeMove(startX, startY, endX, endY);
-            System.out.println("Move successful!");
+            System.out.println("\n"+"Move successful!"+"\n");
         } else {
-            System.out.println("Invalid move!");
+            System.out.println("\n"+"Invalid move!"+"\n");
         }
-
         game.printBoard();
+        whiteTurn = false;
+    }
+
+    public static void onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY,int count){
+        System.out.println("/n");
+        int startX = sX;
+        int startY = sY;
+        int endX = eX;
+        int endY = eY;
+        if (game.isValidMove(startX, startY, endX, endY)) {
+            game.makeMove(startX, startY, endX, endY);
+            System.out.println("\n"+"Move successful!"+"\n");
+        } else {
+            System.out.println("\n"+"Invalid move!"+"\n");
+        }
+        game.printBoard();
+        whiteTurn = true;
+    }
+
+    public static void turnUpdate(int turnCount){
+        if(turnCount%2==0){
+            whiteTurn = true;
+            turnCount++;
+        }if(turnCount%2!=0){
+            whiteTurn = false;
+            turnCount++;
+        }
+    }
+
+    public static void main(String[] args) {
+        ChessRules game = new ChessRules(true);
+        game.printBoard();
+        int turnCount = 1;
+        onWhiteTurn(game, 7, 2, 6, 2,turnCount);
+        onBlackTurn(game, 2, 2, 3, 2, turnCount);
+        onWhiteTurn(game, 7, 7, 6, 7,turnCount);
+        onBlackTurn(game, 3, 2, 4, 2,turnCount);
+        onWhiteTurn(game, 8, 3, 6, 1,turnCount);
+        
     }
 }
