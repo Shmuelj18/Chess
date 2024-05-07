@@ -34,6 +34,8 @@ public class ClientHandler implements Runnable {
     private PrintWriter out;
     private BufferedReader in;
     private ClientHandler opponent;
+    private int intInPut;
+    private String coordinates;
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
@@ -69,7 +71,11 @@ public class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from " + username + ": " + inputLine);
-                processInput(inputLine);
+                if (inputLine.length() == 4 && canConvertToInt(inputLine) == true) {
+                    intInPut = Integer.parseInt(inputLine);
+                    coordinates = inputLine;
+                } else
+                    processInput(inputLine);
             }
         } catch (IOException e) {
             System.out.println("Error handling client " + username + ": " + e.getMessage());
@@ -98,6 +104,7 @@ public class ClientHandler implements Runnable {
                 if (opponent != null) {
                     opponent.out.println(username + " has accepted your game request.");
                     startGame();
+                    gamePlay(this, this.opponent);
                 }
                 break;
             case "rejectGame":
@@ -138,7 +145,8 @@ public class ClientHandler implements Runnable {
         if (requestedHandler != null && !requestedUsername.equals(username) && requestedHandler.opponent == null) {
             this.opponent = requestedHandler;
             requestedHandler.opponent = this;
-            requestedHandler.out.println(username + " wants to play with you. Accept (acceptGame) or Reject (rejectGame)?");
+            requestedHandler.out
+                    .println(username + " wants to play with you. Accept (acceptGame) or Reject (rejectGame)?");
             out.println("Game request sent to " + requestedUsername + ". Waiting for response...");
         } else {
             out.println("Invalid username or user busy.");
@@ -148,6 +156,7 @@ public class ClientHandler implements Runnable {
     private void startGame() {
         out.println("Game started with " + opponent.username);
         opponent.out.println("Game started with " + username);
+
     }
 
     private void cleanup() {
@@ -166,5 +175,38 @@ public class ClientHandler implements Runnable {
         } catch (IOException e) {
             System.out.println("Error cleaning up " + username + ": " + e.getMessage());
         }
+    }
+
+    private void gamePlay(ClientHandler white, ClientHandler black) {
+        String temp = "to move enter the coordinates of the piece \nyou want to moves location and then "
+                + "\nthe coordinates of where you want it moved to";
+        this.out.print(temp);
+        this.opponent.out.print(temp);
+        ChessRules game = new ChessRules(true);
+        while (game.isCheckmate() == false) {
+            if (game.matchUpdate() == true) {
+                game.onWhiteTurn(game, white.covertValue(coordinates, 1), white.covertValue(coordinates, 2),
+                        white.covertValue(coordinates, 3), white.covertValue(coordinates, 4));
+                ;
+            }
+            if (game.matchUpdate() == false) {
+                game.onBlackTurn(game, black.covertValue(coordinates,1), black.covertValue(coordinates,2),
+                        black.covertValue(coordinates,3), black.covertValue(coordinates,4));
+            }
+        }
+    }
+
+    public static boolean canConvertToInt(String input) {
+        try {
+            Integer.parseInt(input);
+            return true; // If no exception is thrown, the conversion is successful
+        } catch (NumberFormatException e) {
+            return false; // If a NumberFormatException is caught, the conversion failed
+        }
+    }
+
+    private int covertValue(String inTo, int i) {
+        int temp = Character.getNumericValue(inTo.charAt(i));
+        return temp;
     }
 }

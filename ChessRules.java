@@ -353,7 +353,7 @@ public class ChessRules {
             enPassantSquare[1] = -1;
         }
     }
-    public static void onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY){
+    public void onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY){
         System.out.println("/n");
         int startX = sX;
         int startY = sY;
@@ -369,8 +369,8 @@ public class ChessRules {
         whiteTurn = false;
     }
 
-    public static void onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
-        System.out.println("/n");
+    public void onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
+        System.out.println("\n");
         int startX = sX;
         int startY = sY;
         int endX = eX;
@@ -385,27 +385,14 @@ public class ChessRules {
         whiteTurn = true;
     }
 
-    public static void turnUpdate(int turnCount){
-        if(turnCount%2==0){
-            whiteTurn = true;
-            turnCount++;
-        }if(turnCount%2!=0){
-            whiteTurn = false;
-            turnCount++;
-        }
+    public boolean matchUpdate(){
+        boolean whiteGo = whiteTurn;
+        return whiteGo;
     }
 
     public static void main(String[] args) {
         ChessRules game = new ChessRules(true);
         game.printBoard();
-        
-        /*onWhiteTurn(game, 7, 2, 6, 2);
-        onBlackTurn(game, 2, 2, 3, 2);
-        onWhiteTurn(game, 7, 7, 6, 7);
-        onBlackTurn(game, 3, 2, 4, 2);
-        onWhiteTurn(game, 8, 3, 6, 1);
-        onBlackTurn(game, 2, 7, 4, 7);
-        onWhiteTurn(game, 6, 1, 2, 5);*/
         
     }
 }
