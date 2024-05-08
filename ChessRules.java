@@ -47,6 +47,16 @@ public class ChessRules {
             System.out.println();
         }
     }
+    public String returnBoard(){
+        String gameBoard ="";
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                gameBoard = gameBoard+(board[i][j] + " ");
+            }
+            System.out.println();
+        }
+        return gameBoard;
+    }
 
     public boolean isValidMove(int startX, int startY, int endX, int endY) {
         // Check if the start and end positions are within the board boundaries
@@ -353,7 +363,7 @@ public class ChessRules {
             enPassantSquare[1] = -1;
         }
     }
-    public void onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY){
+    public String onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY){
         System.out.println("/n");
         int startX = sX;
         int startY = sY;
@@ -361,38 +371,48 @@ public class ChessRules {
         int endY = eY;
         if (game.isValidMove(startX, startY, endX, endY)) {
             game.makeMove(startX, startY, endX, endY);
-            System.out.println("\n"+"Move successful!"+"\n");
+            whiteTurn = false;
+           
+            return("\n"+"Move successful!"+"\n"+game.returnBoard());
+            
         } else {
-            System.out.println("\n"+"Invalid move!"+"\n");
+            return("\n"+"Invalid move!"+"\n"+game.returnBoard());
         }
-        game.printBoard();
-        whiteTurn = false;
+        //game.printBoard();
+       // game.returnBoard();
+        
     }
 
-    public void onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
-        System.out.println("\n");
+    public String onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
+        //System.out.println("\n");
         int startX = sX;
         int startY = sY;
         int endX = eX;
         int endY = eY;
         if (game.isValidMove(startX, startY, endX, endY)) {
             game.makeMove(startX, startY, endX, endY);
-            System.out.println("\n"+"Move successful!"+"\n");
+            whiteTurn = true;
+        
+            return("\n"+"Move successful!"+"\n"+game.returnBoard());
+            
         } else {
-            System.out.println("\n"+"Invalid move!"+"\n");
+            return("\n"+"Invalid move!"+"\n"+game.returnBoard());
         }
-        game.printBoard();
-        whiteTurn = true;
+        //game.printBoard();
+        //game.returnBoard();
+        
+        
     }
 
     public boolean matchUpdate(){
-        boolean whiteGo = whiteTurn;
-        return whiteGo;
+       boolean update = whiteTurn;
+        return update;
     }
 
     public static void main(String[] args) {
         ChessRules game = new ChessRules(true);
         game.printBoard();
-        
+        game.returnBoard();
     }
 }
+    
