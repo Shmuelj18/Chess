@@ -27,14 +27,13 @@ public class ChessServer {
     }
 }
 
-public class ClientHandler implements Runnable {
+class ClientHandler implements Runnable {
     private static ConcurrentHashMap<String, ClientHandler> handlers = new ConcurrentHashMap<>();
     private Socket clientSocket;
     private String username;
     private PrintWriter out;
     private BufferedReader in;
     private ClientHandler opponent;
-    private int intInPut;
     private String coordinates;
 
     public ClientHandler(Socket clientSocket) {
@@ -71,16 +70,12 @@ public class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from " + username + ": " + inputLine);
-                if (inputLine.length() == 4 && canConvertToInt(inputLine) == true) {
-                    intInPut = Integer.parseInt(inputLine);
-                    coordinates = inputLine;
-                } else
-                    processInput(inputLine);
+                processInput(inputLine);
             }
         } catch (IOException e) {
             System.out.println("Error handling client " + username + ": " + e.getMessage());
         } finally {
-            cleanup();
+           cleanup();
         }
     }
 
@@ -96,35 +91,41 @@ public class ClientHandler implements Runnable {
     }
 
     private void processInput(String input) throws IOException {
-        switch (input) {
-            case "listPlayers":
+        while (input.length()!=100000000) {
+            if (input.startsWith( "listPlayers")){
                 listPlayers();
                 break;
-            case "acceptGame":
+            }
+            if (input.startsWith("acceptGame")){
                 if (opponent != null) {
                     opponent.out.println(username + " has accepted your game request.");
                     startGame();
-                    gamePlay(this, this.opponent);
                 }
                 break;
-            case "rejectGame":
+            }
+            if (input.startsWith("rejectGame")){
                 if (opponent != null) {
                     opponent.out.println(username + " has rejected your game request.");
                     opponent = null;
                     out.println("Game request denied.");
                 }
                 break;
-            case "disconnect":
+            }
+            if (input.startsWith("disconnect")){
                 cleanup();
                 break;
-            case "menu":
+            }
+            if (input.startsWith("menu")){
                 sendMenu();
                 break;
-            default:
-                if (input.startsWith("requestPlayer ")) {
-                    String requestedUsername = input.split(" ")[1];
-                    requestPlayer(requestedUsername);
-                } else {
+            }
+            if (input.startsWith("requestPlayer ")) {
+                String requestedUsername = input.split(" ")[1];
+                requestPlayer(requestedUsername);
+            }
+             if(input.length()==4&&canConvertToInt(input)==true){
+                    coordinates = input;
+            }else {
                     out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
                 }
                 break;
@@ -145,8 +146,7 @@ public class ClientHandler implements Runnable {
         if (requestedHandler != null && !requestedUsername.equals(username) && requestedHandler.opponent == null) {
             this.opponent = requestedHandler;
             requestedHandler.opponent = this;
-            requestedHandler.out
-                    .println(username + " wants to play with you. Accept (acceptGame) or Reject (rejectGame)?");
+            requestedHandler.out.println(username + " wants to play with you. Accept (acceptGame) or Reject (rejectGame)?");
             out.println("Game request sent to " + requestedUsername + ". Waiting for response...");
         } else {
             out.println("Invalid username or user busy.");
@@ -154,12 +154,13 @@ public class ClientHandler implements Runnable {
     }
 
     private void startGame() {
+        
         out.println("Game started with " + opponent.username);
         opponent.out.println("Game started with " + username);
-
+        gamePlay(this, this.opponent);
     }
 
-    private void cleanup() {
+   private void cleanup() {
         try {
             if (clientSocket != null) {
                 clientSocket.close();
@@ -179,19 +180,20 @@ public class ClientHandler implements Runnable {
 
     private void gamePlay(ClientHandler white, ClientHandler black) {
         String temp = "to move enter the coordinates of the piece \nyou want to moves location and then "
-                + "\nthe coordinates of where you want it moved to";
+                + "\nthe coordinates of where you want it moved to\n";
         this.out.print(temp);
         this.opponent.out.print(temp);
+        String coordinate = coordinates;
         ChessRules game = new ChessRules(true);
         while (game.isCheckmate() == false) {
             if (game.matchUpdate() == true) {
-                game.onWhiteTurn(game, white.covertValue(coordinates, 1), white.covertValue(coordinates, 2),
-                        white.covertValue(coordinates, 3), white.covertValue(coordinates, 4));
+                game.onWhiteTurn(game, white.convertValue(coordinate, 1), white.convertValue(coordinate, 2),
+                        white.convertValue(coordinate, 3), white.convertValue(coordinate, 4));
                 ;
             }
             if (game.matchUpdate() == false) {
-                game.onBlackTurn(game, black.covertValue(coordinates,1), black.covertValue(coordinates,2),
-                        black.covertValue(coordinates,3), black.covertValue(coordinates,4));
+                game.onBlackTurn(game, black.convertValue(coordinate,1), black.convertValue(coordinate,2),
+                        black.convertValue(coordinate,3), black.convertValue(coordinate,4));
             }
         }
     }
@@ -205,8 +207,8 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private int covertValue(String inTo, int i) {
-        int temp = Character.getNumericValue(inTo.charAt(i));
-        return temp;
+    public int convertValue(String temp, int i){
+        int j = Character.getNumericValue(temp.charAt(i));
+        return j;
     }
 }
