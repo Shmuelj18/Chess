@@ -7,6 +7,9 @@ public class OnTurn {
         black = bLack;
         game = gAme;
     }
+    public OnTurn(){
+
+    }
 
   
     public int convertValue(String temp, int i){
@@ -20,7 +23,7 @@ public class OnTurn {
             convertValue(coordinate, 3), convertValue(coordinate, 4));
          }
          else {
-            return ("Game Over white is victorious");
+            return ("Game Over white is victorious" + game.returnBoard());
          }
     }
     public String whiteTurn(String coordinate){
@@ -29,7 +32,7 @@ public class OnTurn {
            convertValue(coordinate, 3), convertValue(coordinate, 4));
         }
         else {
-           return ("Game Over black is victorious");
+           return ("Game Over black is victorious" + game.returnBoard());
         }
    }
     
