@@ -27,7 +27,7 @@ public class ChessServer {
     }
 }
 
-public class ClientHandler implements Runnable {
+class ClientHandler implements Runnable {
     private static ConcurrentHashMap<String, ClientHandler> handlers = new ConcurrentHashMap<>();
     private Socket clientSocket;
     private String username;
