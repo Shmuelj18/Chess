@@ -418,14 +418,16 @@ public class ChessRules {
     }
 
     public static void main(String[] args) {
-        ChessRules game = new ChessRules(true);
-       // game.printBoard();
+        /*ChessRules game = new ChessRules(true);
+        game.printBoard();
         System.out.println(game.onWhiteTurn(game,3,7,3,5));
         System.out.println(game.onBlackTurn(game,3,2,3,3));
         System.out.println(game.onWhiteTurn(game,4,7,4,6));
         System.out.println(game.onBlackTurn(game,4,1,1,4));
         System.out.println(game.onWhiteTurn(game,5,8,4,7));
-       // System.out.println(game.onBlackTurn(game,1,4,4,7));
+       // System.out.println(game.onBlackTurn(game,1,4,4,7));*/
+       
+
     }
 }
     

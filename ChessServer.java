@@ -15,7 +15,8 @@ public class ChessServer {
                 try {
                     System.out.println("Waiting for clients...");
                     Socket clientSocket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(clientSocket);
+                    ChessRules game = new ChessRules(false);
+                    ClientHandler clientHandler = new ClientHandler(clientSocket,game);
                     pool.execute(clientHandler);
                 } catch (IOException e) {
                     System.out.println("Error connecting to client: " + e.getMessage());
@@ -34,10 +35,14 @@ class ClientHandler implements Runnable {
     private PrintWriter out;
     private BufferedReader in;
     private ClientHandler opponent;
-    private boolean startGame = false;
+    private boolean startGame;
+    private ChessRules personalGame;
 
-    public ClientHandler(Socket clientSocket) {
+    public ClientHandler(Socket clientSocket,ChessRules gAme) {
         this.clientSocket = clientSocket;
+        ChessRules game = gAme;;
+        startGame = false;
+        this.personalGame = game;
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -70,14 +75,11 @@ class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from " + username + ": " + inputLine);
-                ChessRules blank = new ChessRules(false);
+                ChessRules blank = new ChessRules(false); 
                 OnTurn empty = new OnTurn();
                 if(startGame==true){
-                    ChessRules game = new ChessRules(true);
-                    out.println(game.returnBoard());
-                    opponent.out.println(game.returnBoard());
-                    OnTurn moveControl = new OnTurn(this, this.opponent, game);
-                    processInput(inputLine,game,moveControl);
+                   OnTurn moveControl = setUpGame();
+                   processInput(inputLine,personalGame,moveControl);
                 }else{
                     processInput(inputLine,blank,empty);
                 }
@@ -103,18 +105,18 @@ class ClientHandler implements Runnable {
 
     private void processInput(String input,ChessRules game, OnTurn moveControl) throws IOException {
         while (input.length()!=100000) {
-            if(input.length()==4 &&canConvertToInt(input)==true){
+            if(input.length()==4 &&canConvertToInt(input)){
                 String bordUpdate = "";
-                if(game.matchUpdate() == true){
+                if(startGame == true){
                     if(game.matchUpdate() == true){
-                        this.out.print("please input coordinates");
+                        this.out.print("white input coordinates");
                         bordUpdate = moveControl.whiteTurn(input);
                         this.out.println(bordUpdate);
                         this.opponent.out.print(bordUpdate);
                         break;
                     }
                     if(game.matchUpdate() == false){
-                        this.out.print("please input coordinates");
+                        this.out.print("black input coordinates");
                         bordUpdate = moveControl.blackTurn(input);
                         this.out.println(bordUpdate);
                         this.opponent.out.print(bordUpdate);
@@ -188,9 +190,18 @@ class ClientHandler implements Runnable {
         + "\nthe coordinates of where you want it moved to\n"+
         "\n"+this.username+" is white "+ this.opponent.username+ " is black \n white goes first";
         out.println("Game started with " + opponent.username+"\n"+temp+"\n press enter to begin");
-        opponent.out.println("Game started with " + username+"\n"+temp+"\n press enter to begin");
+        opponent.out.println("Game started with " + username+"\n"+temp);
         startGame = start;
+    }
 
+    public OnTurn setUpGame(){
+        ChessRules game = this.personalGame;
+                   opponent.personalGame = game;
+                    out.println(game.returnBoard());
+                    opponent.out.println(game.returnBoard());
+                    OnTurn moveControl = new OnTurn(this, this.opponent, game);
+                    return moveControl;
+                    
     }
 
    private void cleanup() {
