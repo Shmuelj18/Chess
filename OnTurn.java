@@ -16,7 +16,7 @@ public class OnTurn {
         if(game.matchUpdate()==true){
           return game.onWhiteTurn(game, ints[0], ints[1],ints[2], ints[3]);
         }
-        if(game.matchUpdate()==true){
+        if(game.matchUpdate()==false){
           return game.onBlackTurn(game, ints[0], ints[1],ints[2], ints[3]);
         }
       else return "error in game play";

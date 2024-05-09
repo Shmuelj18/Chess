@@ -37,12 +37,11 @@ class ClientHandler implements Runnable {
     private PrintWriter out;
     private BufferedReader in;
     private ClientHandler opponent;
-    private boolean startGame;
-    //Stack<ChessRules> gameHolder = new Stack<>();
+    private OnTurn moveControl;
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        startGame = false;
+        moveControl = new OnTurn();
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -75,14 +74,7 @@ class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from " + username + ": " + inputLine);
-                OnTurn empty = new OnTurn();
-                
-                if(startGame==true){
-                        OnTurn moveControl = new OnTurn(this,this.opponent);
-                        processInput(inputLine,moveControl);
-                }else{
-                    processInput(inputLine,empty);
-                }
+                processInput(inputLine,moveControl);
             }
         } catch (IOException e) {
             System.out.println("Error handling client " + username + ": " + e.getMessage());
@@ -105,20 +97,12 @@ class ClientHandler implements Runnable {
 
     private void processInput(String input, OnTurn moveControl) throws IOException {
         while (input.length()!=100000) {
-            while(input.length()==4 &&canConvertToInt(input)){
-                if(startGame == true){
-                        moveControl.allTurns(input);
-                        this.out.println("\n"+moveControl.printBoard());
-                        opponent.out.println("\n"+moveControl.printBoard()+"\ninput coordinates");
-                        if(moveControl.game.isCheckmate()==true){
-                            startGame=false;
-                        }
-                        break;
-                }else{
-                    out.println("move must be inputted as coordinates");
-                    break;
-                }
-                
+            if(input.length()==4 &&canConvertToInt(input)){
+                this.moveControl.allTurns(input);
+                this.out.println("\n"+moveControl.printBoard());
+                opponent.out.println("\n"+moveControl.printBoard()+"\ninput coordinates");    
+                this.opponent.moveControl = this.moveControl;
+                break;
             }
             if (input.startsWith( "listPlayers")){
                 listPlayers();
@@ -127,7 +111,7 @@ class ClientHandler implements Runnable {
             if (input.startsWith("acceptGame")){
                 if (opponent != null) {
                     opponent.out.println(username + " has accepted your game request.");
-                    startGame(true);
+                    startGame();
                 }
                 break;
             }
@@ -154,13 +138,10 @@ class ClientHandler implements Runnable {
             }
         
             else {
-                    out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
-                    break; 
+                out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
+                break; 
             } 
-            
-                
-            
-        }
+    }       
     }
 
     
@@ -185,15 +166,15 @@ class ClientHandler implements Runnable {
         }
     }
 
-    private void startGame(boolean start) {
+    private void startGame() {
         String temp = "\n to make a move enter the coordinates of the piece like this\n  x,y(old location)->i,j(new location) as xyij\n"+
         "\n"+ this.username+" is white & "+ this.opponent.username+ " is black \n white goes first";
         out.println("Game started with " + opponent.username+"\n"+temp);
         opponent.out.println("Game started with " + username+"\n"+temp);
-       // createPush(username);
-       startGame = start;
        this.out.println("input coordinates\n"+startBoard());
        this.opponent.out.println(startBoard());
+       this.moveControl = new OnTurn(this,this.opponent);
+       this.opponent.moveControl = new OnTurn(this,this.opponent);
     }
 
    private void cleanup() {
@@ -222,12 +203,6 @@ class ClientHandler implements Runnable {
         } catch (NumberFormatException e) {
             return false; // If a NumberFormatException is caught, the conversion failed
         }
-    }
-
-    public void createPush(String username){
-        Map<String, ChessRules> chessRulesMap = new HashMap<>();
-        chessRulesMap.put(username, new ChessRules(true));
-        //gameHolder.push(chessRulesMap.get(username));
     }
 
     private String startBoard(){
