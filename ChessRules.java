@@ -12,6 +12,7 @@ public class ChessRules {
     private boolean blackRightRookMoved;
     private int[] enPassantSquare;
     private boolean kingInCheck;
+    public String name;
 
     public ChessRules(boolean startingTurn) {
         initializeBoard();
@@ -23,9 +24,21 @@ public class ChessRules {
         blackLeftRookMoved = false;
         blackRightRookMoved = false;
         kingInCheck = false;
-
         enPassantSquare = new int[]{-1, -1};
     }
+    public ChessRules(String name) {
+        initializeBoard();
+        whiteTurn = false; // White starts first
+        whiteKingMoved = false;
+        blackKingMoved = false;
+        whiteLeftRookMoved = false;
+        whiteRightRookMoved = false;
+        blackLeftRookMoved = false;
+        blackRightRookMoved = false;
+        kingInCheck = false;
+        enPassantSquare = new int[]{-1, -1};
+    }
+
 
     private void initializeBoard() {
         // Initialize the chessboard
@@ -49,6 +62,12 @@ public class ChessRules {
             }
             System.out.println();
         }
+    }
+    public void setName(String newName){
+        this.name = newName;
+    }    
+    public static  void setWhiteTurn(boolean turn){
+        whiteTurn =turn;
     }
     public String returnBoard(){
         String gameBoard ="";
@@ -375,41 +394,44 @@ public class ChessRules {
         int startY = sX;
         int endX = eY;
         int endY = eX;
+        String moveDetail = "";
         if (game.isValidMove(startX, startY, endX, endY)) {
             game.makeMove(startX, startY, endX, endY);
             whiteTurn = false;
             kingInCheck = game.isCheckmate();
-            return("\n"+"Move successful!"+"\n"+game.returnBoard());
-            
-        }  else if(isCheckmate()==true){
-            return("Game Over black is victorious" + game.returnBoard());
-        }else {
-            return("\n"+"Invalid move!"+"\n"+game.returnBoard());
+            if(isCheckmate()==true){
+                moveDetail ="Game Over white is victorious\n" + game.returnBoard();
+            }else if(isCheckmate()==false){
+                moveDetail ="\n"+"Move successful!"+"\n"+game.returnBoard();
+            }
         }
-        //game.printBoard();
-       // game.returnBoard();
-        
+        else{
+            moveDetail ="\n Invalid move!\n"+game.returnBoard();
+        }
+        return moveDetail;
     }
 
     public String onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
-        //System.out.println("\n");
+        System.out.println("\n");
         int startX = sY;
         int startY = sX;
         int endX = eY;
         int endY = eX;
+        String moveDetail = "";
         if (game.isValidMove(startX, startY, endX, endY)) {
             game.makeMove(startX, startY, endX, endY);
-            whiteTurn = true;
-            kingInCheck = game.isCheckmate();
-            return("\n"+"Move successful!"+"\n"+game.returnBoard());
-        } else if(isCheckmate()==true){
-            return("Game Over white is victorious" + game.returnBoard());
-        }else
-            return("\n"+"Invalid move!"+"\n"+game.returnBoard());
-        
-        //game.printBoard();
-        //game.returnBoard();
-        
+            whiteTurn = true;//update whos turn it is
+            kingInCheck = game.isCheckmate();//update if its checkmate
+            if(isCheckmate()==true){
+                moveDetail ="Game Over black is victorious\n" + game.returnBoard();
+            }else if(isCheckmate()==false){
+                moveDetail ="\n"+"Move successful!"+"\n"+game.returnBoard();
+            }
+        }
+        else{
+            moveDetail ="\n"+"Invalid move!\n"+game.returnBoard();
+        }
+        return moveDetail;
     }
 
     public boolean matchUpdate(){
@@ -418,8 +440,8 @@ public class ChessRules {
     }
 
     public static void main(String[] args) {
-        /*ChessRules game = new ChessRules(true);
-        game.printBoard();
+        //ChessRules game = new ChessRules(true);
+       /* game.printBoard();
         System.out.println(game.onWhiteTurn(game,3,7,3,5));
         System.out.println(game.onBlackTurn(game,3,2,3,3));
         System.out.println(game.onWhiteTurn(game,4,7,4,6));

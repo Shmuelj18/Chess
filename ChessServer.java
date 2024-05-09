@@ -1,5 +1,8 @@
 import java.io.*;
 import java.net.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,8 +18,7 @@ public class ChessServer {
                 try {
                     System.out.println("Waiting for clients...");
                     Socket clientSocket = serverSocket.accept();
-                    ChessRules game = new ChessRules(false);
-                    ClientHandler clientHandler = new ClientHandler(clientSocket,game);
+                    ClientHandler clientHandler = new ClientHandler(clientSocket);
                     pool.execute(clientHandler);
                 } catch (IOException e) {
                     System.out.println("Error connecting to client: " + e.getMessage());
@@ -36,13 +38,11 @@ class ClientHandler implements Runnable {
     private BufferedReader in;
     private ClientHandler opponent;
     private boolean startGame;
-    private ChessRules personalGame;
+    //Stack<ChessRules> gameHolder = new Stack<>();
 
-    public ClientHandler(Socket clientSocket,ChessRules gAme) {
+    public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        ChessRules game = gAme;;
         startGame = false;
-        this.personalGame = game;
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -75,13 +75,13 @@ class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from " + username + ": " + inputLine);
-                ChessRules blank = new ChessRules(false); 
                 OnTurn empty = new OnTurn();
+                
                 if(startGame==true){
-                   OnTurn moveControl = setUpGame();
-                   processInput(inputLine,personalGame,moveControl);
+                        OnTurn moveControl = new OnTurn(this,this.opponent);
+                        processInput(inputLine,moveControl);
                 }else{
-                    processInput(inputLine,blank,empty);
+                    processInput(inputLine,empty);
                 }
             }
         } catch (IOException e) {
@@ -103,28 +103,22 @@ class ClientHandler implements Runnable {
         out.println("Enter a command:");
     }
 
-    private void processInput(String input,ChessRules game, OnTurn moveControl) throws IOException {
+    private void processInput(String input, OnTurn moveControl) throws IOException {
         while (input.length()!=100000) {
-            if(input.length()==4 &&canConvertToInt(input)){
-                String bordUpdate = "";
+            while(input.length()==4 &&canConvertToInt(input)){
                 if(startGame == true){
-                    if(game.matchUpdate() == true){
-                        this.out.print("white input coordinates");
-                        bordUpdate = moveControl.whiteTurn(input);
-                        this.out.println(bordUpdate);
-                        this.opponent.out.print(bordUpdate);
+                        moveControl.allTurns(input);
+                        this.out.println("\n"+moveControl.printBoard());
+                        opponent.out.println("\n"+moveControl.printBoard()+"\ninput coordinates");
+                        if(moveControl.game.isCheckmate()==true){
+                            startGame=false;
+                        }
                         break;
-                    }
-                    if(game.matchUpdate() == false){
-                        this.out.print("black input coordinates");
-                        bordUpdate = moveControl.blackTurn(input);
-                        this.out.println(bordUpdate);
-                        this.opponent.out.print(bordUpdate);
-                    }
                 }else{
-                    out.println("Unknown command move must be inputted as a four digit number");
+                    out.println("move must be inputted as coordinates");
                     break;
                 }
+                
             }
             if (input.startsWith( "listPlayers")){
                 listPlayers();
@@ -156,14 +150,20 @@ class ClientHandler implements Runnable {
             if (input.startsWith("requestPlayer ")) {
                 String requestedUsername = input.split(" ")[1];
                 requestPlayer(requestedUsername);
-            }
-             else {
-                    out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
-                }
                 break;
+            }
+        
+            else {
+                    out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
+                    break; 
+            } 
+            
+                
+            
         }
     }
 
+    
     private void listPlayers() {
         out.println("Available players:");
         handlers.forEach((key, handler) -> {
@@ -186,22 +186,14 @@ class ClientHandler implements Runnable {
     }
 
     private void startGame(boolean start) {
-        String temp = "\n to move enter the coordinates of the piece \nyou want to moves location and then "
-        + "\nthe coordinates of where you want it moved to\n"+
-        "\n"+this.username+" is white "+ this.opponent.username+ " is black \n white goes first";
-        out.println("Game started with " + opponent.username+"\n"+temp+"\n press enter to begin");
+        String temp = "\n to make a move enter the coordinates of the piece like this\n  x,y(old location)->i,j(new location) as xyij\n"+
+        "\n"+ this.username+" is white & "+ this.opponent.username+ " is black \n white goes first";
+        out.println("Game started with " + opponent.username+"\n"+temp);
         opponent.out.println("Game started with " + username+"\n"+temp);
-        startGame = start;
-    }
-
-    public OnTurn setUpGame(){
-        ChessRules game = this.personalGame;
-                   opponent.personalGame = game;
-                    out.println(game.returnBoard());
-                    opponent.out.println(game.returnBoard());
-                    OnTurn moveControl = new OnTurn(this, this.opponent, game);
-                    return moveControl;
-                    
+       // createPush(username);
+       startGame = start;
+       this.out.println("input coordinates\n"+startBoard());
+       this.opponent.out.println(startBoard());
     }
 
    private void cleanup() {
@@ -221,8 +213,9 @@ class ClientHandler implements Runnable {
             System.out.println("Error cleaning up " + username + ": " + e.getMessage());
         }
     }
+    
 
-        public static boolean canConvertToInt(String input) {
+    public static boolean canConvertToInt(String input) {
         try {
             Integer.parseInt(input);
             return true; // If no exception is thrown, the conversion is successful
@@ -231,5 +224,35 @@ class ClientHandler implements Runnable {
         }
     }
 
-   
+    public void createPush(String username){
+        Map<String, ChessRules> chessRulesMap = new HashMap<>();
+        chessRulesMap.put(username, new ChessRules(true));
+        //gameHolder.push(chessRulesMap.get(username));
+    }
+
+    private String startBoard(){
+        char[][] board = new char[][]{
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8'},
+            {'1', 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'},
+            {'2', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'},
+            {'3', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'4', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'5', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'6', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'7', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'},
+            {'8', 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}
+        };
+        String gameBoard ="";
+        for (int i = 0; i < 9; i++) {
+            if(i>0){
+                gameBoard = gameBoard+"\n";
+            }
+            for (int j = 0; j < 9; j++) {
+                gameBoard = gameBoard+(board[i][j] + " ");
+            }
+        }
+        return gameBoard;
+    }
+
 }
+
