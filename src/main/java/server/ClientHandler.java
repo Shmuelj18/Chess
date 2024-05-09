@@ -1,98 +1,73 @@
-package src.main.java.server;
-import java.io.*;
-import java.net.*;
+package server;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import common.GameSession;
+import common.Position;
 
 public class ClientHandler implements Runnable {
-    private Socket socket;
-    private ChessServer server;
+    private Socket clientSocket;
     private PrintWriter out;
     private BufferedReader in;
-    private String clientId;
-    private boolean isWaiting = false;
+    private GameSession gameSession;  // Specific game session for this handler
 
-    public ClientHandler(Socket socket, ChessServer server) throws IOException {
-        this.socket = socket;
-        this.server = server;
-        this.out = new PrintWriter(socket.getOutputStream(), true);
-        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        out.println("Please enter your name:");
-        this.clientId = in.readLine();  // Set client name as client ID
-        sendMessage("Welcome " + clientId + "! You are now connected.");
-        printCommands();
+    public ClientHandler(Socket socket, GameSession gameSession) {
+        this.clientSocket = socket;
+        this.gameSession = gameSession;  // Pass the specific game session when creating the handler
     }
 
-    private void printCommands() {
-        sendMessage("Commands:\nLOGIN\nWAIT\nLIST\nREQUEST <player name>");
-    }
-
+    @Override
     public void run() {
         try {
-            while (true) {
-                String input = in.readLine();
-                if (input != null) {
-                    processCommand(input);
-                } else {
+            out = new PrintWriter(clientSocket.getOutputStream(), true);
+            in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                String response = processCommand(inputLine);
+                if (response != null) {
+                    out.println(response);
+                }
+                if ("disconnect".equalsIgnoreCase(inputLine)) {
                     break;
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error handling client: " + e.getMessage());
+            System.out.println("Exception in handling client #" + Thread.currentThread().getId() + ": " + e.getMessage());
         } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                System.out.println("Couldn't close a socket, what's going on?");
+            cleanUp();
+        }
+    }
+
+    private void cleanUp() {
+        try {
+            if (out != null) {
+                out.close();
             }
-        }
-    }
-
-    private void processCommand(String input) {
-        String command = input.trim().toUpperCase(); // Normalize input to upper case
-        if (command.contains(" ")) {
-            // If the command includes an argument, split and normalize only the command part
-            int firstSpaceIndex = command.indexOf(" ");
-            command = command.substring(0, firstSpaceIndex);
-            String argument = input.substring(firstSpaceIndex).trim();
-            switch (command) {
-                case "REQUEST":
-                    server.requestGame(clientId, argument.toLowerCase()); // Normalize name to lower case
-                    break;
-                default:
-                    processSimpleCommand(command);
+            if (in != null) {
+                in.close();
             }
-        } else {
-            processSimpleCommand(command);
-        }
-    }
-    
-    private void processSimpleCommand(String command) {
-        switch (command) {
-            case "LOGIN":
-                // handle login
-                break;
-            case "WAIT":
-                isWaiting = true;
-                server.sendAllWaitingClients(this);
-                sendMessage("Added to waiting list.");
-                break;
-            case "LIST":
-                server.listAllClients(this);
-                break;
-            default:
-                sendMessage("Unknown command.");
-                break;
+            if (clientSocket != null) {
+                clientSocket.close();
+            }
+        } catch (IOException e) {
+            System.out.println("Error when closing client socket or its streams: " + e.getMessage());
         }
     }
 
-    public boolean isWaiting() {
-        return isWaiting;
-    }
-
-    public void sendMessage(String message) {
-        out.println(message);
-    }
-
-    public String getClientId() {
-        return clientId;
+    private String processCommand(String input) {
+        // Adjust to use the specific game session
+        if (input.startsWith("move")) {
+            // Assuming input format: "move from to", e.g., "move e2 e4"
+            String[] parts = input.split(" ");
+            if (parts.length == 3) {
+                return gameSession.makeMove(new Position(parts[1]), new Position(parts[2]), this.clientSocket.toString()) ? "Move successful" : "Invalid move";
+            }
+        } else if (input.equals("status")) {
+            return gameSession.toString();
+        }
+        return "Unknown command";
     }
 }

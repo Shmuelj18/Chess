@@ -1,0 +1,51 @@
+plugins {
+    id 'org.springframework.boot' version '2.7.5'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+    id 'java'
+}
+
+
+// Set the compatibility of the Java version
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+// Define repository where Gradle can find dependencies
+repositories {
+    mavenCentral() // or jcenter() or any other repository where dependencies are hosted
+}
+
+// Define any dependencies here
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // Example to add a dependency on JUnit for testing
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.8.2' // JUnit 5
+}
+
+
+// Define the source sets for Java compilation
+sourceSets {
+    main {
+        java {
+            srcDirs = ['src/main/java']
+        }
+        resources {
+            srcDirs = ['src/main/resources']
+        }
+    }
+    test {
+        java {
+            srcDirs = ['src/test/java']
+        }
+        resources {
+            srcDirs = ['src/test/resources']
+        }
+    }
+}
+
+// Example of creating a custom task, if needed
+task hello {
+    doLast {
+        println 'Hello from Gradle!'
+    }
+}
