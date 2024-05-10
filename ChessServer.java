@@ -1,5 +1,10 @@
 import java.io.*;
 import java.net.*;
+import java.time.Duration;
+import java.time.LocalTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,9 +39,17 @@ class ClientHandler implements Runnable {
     private PrintWriter out;
     private BufferedReader in;
     private ClientHandler opponent;
+    private OnTurn moveControl;
+    private int startTime;
+    private int endTime;
+    private int timeHolder;
+    private LocalTime time;
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
+        moveControl = new OnTurn();
+        timeHolder = 0;
+        time =time.now();
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -69,12 +82,13 @@ class ClientHandler implements Runnable {
             String inputLine;
             while ((inputLine = in.readLine()) != null) {
                 System.out.println("Received from " + username + ": " + inputLine);
-                processInput(inputLine);
+                processInput(inputLine,moveControl);
             }
         } catch (IOException e) {
             System.out.println("Error handling client " + username + ": " + e.getMessage());
-        } finally {
-            cleanup();
+        } 
+        finally {
+           cleanup();
         }
     }
 
@@ -89,41 +103,60 @@ class ClientHandler implements Runnable {
         out.println("Enter a command:");
     }
 
-    private void processInput(String input) throws IOException {
-        switch (input) {
-            case "listPlayers":
+    private void processInput(String input, OnTurn moveControl) throws IOException {
+        while (input.length()!=100000) {
+            if(input.length()==4 &&canConvertToInt(input)){
+                this.moveControl.allTurns(input);
+                this.out.println("\n"+moveControl.printBoard());
+                opponent.out.println("\n"+moveControl.printBoard()+"\ninput coordinates");    
+                this.opponent.moveControl = this.moveControl;
+                this.endTime = (time.getMinute()*60)+time.getSecond();
+                timeHolder =endTime-startTime;
+                this.opponent.startTime = (time.getMinute()*60)+(time.getSecond());
+                //this.out.println("Your current time is "+moveTime());
+                break;
+            }
+            if (input.startsWith( "listPlayers")){
                 listPlayers();
                 break;
-            case "acceptGame":
+            }
+            if (input.startsWith("acceptGame")){
                 if (opponent != null) {
                     opponent.out.println(username + " has accepted your game request.");
                     startGame();
                 }
                 break;
-            case "rejectGame":
+            }
+            if (input.startsWith("rejectGame")){
                 if (opponent != null) {
                     opponent.out.println(username + " has rejected your game request.");
                     opponent = null;
                     out.println("Game request denied.");
                 }
                 break;
-            case "disconnect":
+            }
+            if (input.startsWith("disconnect")){
                 cleanup();
                 break;
-            case "menu":
+            }
+            if (input.startsWith("menu")){
                 sendMenu();
                 break;
-            default:
-                if (input.startsWith("requestPlayer ")) {
-                    String requestedUsername = input.split(" ")[1];
-                    requestPlayer(requestedUsername);
-                } else {
-                    out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
-                }
+            }
+            if (input.startsWith("requestPlayer ")) {
+                String requestedUsername = input.split(" ")[1];
+                requestPlayer(requestedUsername);
                 break;
-        }
+            }
+        
+            else {
+                out.println("Unknown command. Please try again. Type 'menu' for list of commands.");
+                break; 
+            } 
+    }       
     }
 
+    
     private void listPlayers() {
         out.println("Available players:");
         handlers.forEach((key, handler) -> {
@@ -146,11 +179,18 @@ class ClientHandler implements Runnable {
     }
 
     private void startGame() {
-        out.println("Game started with " + opponent.username);
-        opponent.out.println("Game started with " + username);
+        String temp = "\n to make a move enter the coordinates of the piece like this\n  x,y(old location)->i,j(new location) as xyij\n"+
+        "\n"+ this.username+" is white & "+ this.opponent.username+ " is black \n white goes first";
+        out.println("Game started with " + opponent.username+"\n"+temp);
+        opponent.out.println("Game started with " + username+"\n"+temp);
+       this.out.println("input coordinates\n"+startBoard());
+       this.opponent.out.println(startBoard());
+       this.moveControl = new OnTurn(this,this.opponent);
+       this.opponent.moveControl = new OnTurn(this,this.opponent);
+       this.startTime = (time.getMinute()*60)+time.getSecond();
     }
 
-    private void cleanup() {
+   private void cleanup() {
         try {
             if (clientSocket != null) {
                 clientSocket.close();
@@ -167,4 +207,46 @@ class ClientHandler implements Runnable {
             System.out.println("Error cleaning up " + username + ": " + e.getMessage());
         }
     }
+    
+
+    public static boolean canConvertToInt(String input) {
+        try {
+            Integer.parseInt(input);
+            return true; // If no exception is thrown, the conversion is successful
+        } catch (NumberFormatException e) {
+            return false; // If a NumberFormatException is caught, the conversion failed
+        }
+    }
+
+    private String startBoard(){
+        char[][] board = new char[][]{
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8'},
+            {'1', 'r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'},
+            {'2', 'p', 'p', 'p', 'p', 'p', 'p', 'p', 'p'},
+            {'3', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'4', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'5', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'6', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '},
+            {'7', 'P', 'P', 'P', 'P', 'P', 'P', 'P', 'P'},
+            {'8', 'R', 'N', 'B', 'Q', 'K', 'B', 'N', 'R'}
+        };
+        String gameBoard ="";
+        for (int i = 0; i < 9; i++) {
+            if(i>0){
+                gameBoard = gameBoard+"\n";
+            }
+            for (int j = 0; j < 9; j++) {
+                gameBoard = gameBoard+(board[i][j] + " ");
+            }
+        }
+        return gameBoard;
+    }
+
+    public String moveTime(){
+        int minutes = timeHolder / 60;
+        int seconds = timeHolder % 60;
+        String formattedTime = minutes+":"+seconds;
+        return formattedTime;
+    }
+
 }

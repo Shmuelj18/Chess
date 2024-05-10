@@ -11,6 +11,8 @@ public class ChessRules {
     private boolean blackLeftRookMoved;
     private boolean blackRightRookMoved;
     private int[] enPassantSquare;
+    private boolean kingInCheck;
+    public String name;
 
     public ChessRules(boolean startingTurn) {
         initializeBoard();
@@ -21,8 +23,22 @@ public class ChessRules {
         whiteRightRookMoved = false;
         blackLeftRookMoved = false;
         blackRightRookMoved = false;
+        kingInCheck = false;
         enPassantSquare = new int[]{-1, -1};
     }
+    public ChessRules(String name) {
+        initializeBoard();
+        whiteTurn = false; // White starts first
+        whiteKingMoved = false;
+        blackKingMoved = false;
+        whiteLeftRookMoved = false;
+        whiteRightRookMoved = false;
+        blackLeftRookMoved = false;
+        blackRightRookMoved = false;
+        kingInCheck = false;
+        enPassantSquare = new int[]{-1, -1};
+    }
+
 
     private void initializeBoard() {
         // Initialize the chessboard
@@ -46,6 +62,25 @@ public class ChessRules {
             }
             System.out.println();
         }
+    }
+    public void setName(String newName){
+        this.name = newName;
+    }    
+    public static  void setWhiteTurn(boolean turn){
+        whiteTurn =turn;
+    }
+    public String returnBoard(){
+        String gameBoard ="";
+        for (int i = 0; i < 9; i++) {
+            if(i>0){
+                gameBoard = gameBoard+"\n";
+            }
+            for (int j = 0; j < 9; j++) {
+                gameBoard = gameBoard+(board[i][j] + " ");
+            }
+            
+        }
+        return gameBoard;
     }
 
     public boolean isValidMove(int startX, int startY, int endX, int endY) {
@@ -353,59 +388,67 @@ public class ChessRules {
             enPassantSquare[1] = -1;
         }
     }
-    public static void onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY){
+    public String onWhiteTurn(ChessRules game,int sX,int sY, int eX, int eY){
         System.out.println("/n");
-        int startX = sX;
-        int startY = sY;
-        int endX = eX;
-        int endY = eY;
+        int startX = sY;
+        int startY = sX;
+        int endX = eY;
+        int endY = eX;
+        String moveDetail = "";
         if (game.isValidMove(startX, startY, endX, endY)) {
             game.makeMove(startX, startY, endX, endY);
-            System.out.println("\n"+"Move successful!"+"\n");
-        } else {
-            System.out.println("\n"+"Invalid move!"+"\n");
-        }
-        game.printBoard();
-        whiteTurn = false;
-    }
-
-    public static void onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
-        System.out.println("/n");
-        int startX = sX;
-        int startY = sY;
-        int endX = eX;
-        int endY = eY;
-        if (game.isValidMove(startX, startY, endX, endY)) {
-            game.makeMove(startX, startY, endX, endY);
-            System.out.println("\n"+"Move successful!"+"\n");
-        } else {
-            System.out.println("\n"+"Invalid move!"+"\n");
-        }
-        game.printBoard();
-        whiteTurn = true;
-    }
-
-    public static void turnUpdate(int turnCount){
-        if(turnCount%2==0){
-            whiteTurn = true;
-            turnCount++;
-        }if(turnCount%2!=0){
             whiteTurn = false;
-            turnCount++;
+            kingInCheck = game.isCheckmate();
+            if(isCheckmate()==true){
+                moveDetail ="Game Over white is victorious\n" + game.returnBoard();
+            }else if(isCheckmate()==false){
+                moveDetail ="\n"+"Move successful!"+"\n"+game.returnBoard();
+            }
         }
+        else{
+            moveDetail ="\n Invalid move!\n"+game.returnBoard();
+        }
+        return moveDetail;
+    }
+
+    public String onBlackTurn(ChessRules game,int sX,int sY, int eX, int eY){
+        System.out.println("\n");
+        int startX = sY;
+        int startY = sX;
+        int endX = eY;
+        int endY = eX;
+        String moveDetail = "";
+        if (game.isValidMove(startX, startY, endX, endY)) {
+            game.makeMove(startX, startY, endX, endY);
+            whiteTurn = true;//update whos turn it is
+            kingInCheck = game.isCheckmate();//update if its checkmate
+            if(isCheckmate()==true){
+                moveDetail ="Game Over black is victorious\n" + game.returnBoard();
+            }else if(isCheckmate()==false){
+                moveDetail ="\n"+"Move successful!"+"\n"+game.returnBoard();
+            }
+        }
+        else{
+            moveDetail ="\n"+"Invalid move!\n"+game.returnBoard();
+        }
+        return moveDetail;
+    }
+
+    public boolean matchUpdate(){
+       boolean update = whiteTurn;
+        return update;
     }
 
     public static void main(String[] args) {
-        ChessRules game = new ChessRules(true);
-        game.printBoard();
-        
-        /*onWhiteTurn(game, 7, 2, 6, 2);
-        onBlackTurn(game, 2, 2, 3, 2);
-        onWhiteTurn(game, 7, 7, 6, 7);
-        onBlackTurn(game, 3, 2, 4, 2);
-        onWhiteTurn(game, 8, 3, 6, 1);
-        onBlackTurn(game, 2, 7, 4, 7);
-        onWhiteTurn(game, 6, 1, 2, 5);*/
-        
+        //ChessRules game = new ChessRules(true);
+       /* game.printBoard();
+        System.out.println(game.onWhiteTurn(game,3,7,3,5));
+        System.out.println(game.onBlackTurn(game,3,2,3,3));
+        System.out.println(game.onWhiteTurn(game,4,7,4,6));
+        System.out.println(game.onBlackTurn(game,4,1,1,4));
+        System.out.println(game.onWhiteTurn(game,5,8,4,7));
+       // System.out.println(game.onBlackTurn(game,1,4,4,7));*/
+       
+
     }
 }
