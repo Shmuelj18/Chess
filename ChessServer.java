@@ -49,7 +49,7 @@ class ClientHandler implements Runnable {
         this.clientSocket = clientSocket;
         moveControl = new OnTurn();
         timeHolder = 0;
-        //time = new LocalTime();
+        time =time.now();
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -110,9 +110,10 @@ class ClientHandler implements Runnable {
                 this.out.println("\n"+moveControl.printBoard());
                 opponent.out.println("\n"+moveControl.printBoard()+"\ninput coordinates");    
                 this.opponent.moveControl = this.moveControl;
-                this.endTime = time.getMinute()+(time.getSecond()/60);
+                this.endTime = (time.getMinute()*60)+time.getSecond();
                 timeHolder =endTime-startTime;
-                this.opponent.startTime=time.getMinute()+(time.getSecond()/60);
+                this.opponent.startTime = (time.getMinute()*60)+(time.getSecond());
+                //this.out.println("Your current time is "+moveTime());
                 break;
             }
             if (input.startsWith( "listPlayers")){
@@ -186,7 +187,7 @@ class ClientHandler implements Runnable {
        this.opponent.out.println(startBoard());
        this.moveControl = new OnTurn(this,this.opponent);
        this.opponent.moveControl = new OnTurn(this,this.opponent);
-       this.startTime = time.getMinute()+(time.getSecond()/60);
+       this.startTime = (time.getMinute()*60)+time.getSecond();
     }
 
    private void cleanup() {
