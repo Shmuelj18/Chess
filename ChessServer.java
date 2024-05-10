@@ -10,28 +10,31 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ChessServer {
-    private static final int PORT = 55551;
-    private static ExecutorService pool = Executors.newCachedThreadPool();
+    private static final int PORT = 55551;  // Port number where the server will listen
+    private static final String BIND_ADDRESS = "192.168.40.224";  // IP address to bind the server
+    private static ExecutorService pool = Executors.newCachedThreadPool();  // Thread pool for handling clients
 
     public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Chess Server is running...");
-            while (true) {
-                try {
-                    System.out.println("Waiting for clients...");
-                    Socket clientSocket = serverSocket.accept();
-                    ClientHandler clientHandler = new ClientHandler(clientSocket);
-                    pool.execute(clientHandler);
-                } catch (IOException e) {
-                    System.out.println("Error connecting to client: " + e.getMessage());
+        try {
+            InetAddress bindAddr = InetAddress.getByName(BIND_ADDRESS);
+            try (ServerSocket serverSocket = new ServerSocket(PORT, 50, bindAddr)) {
+                System.out.println("Chess Server is running on " + BIND_ADDRESS + ":" + PORT);
+                while (true) {
+                    try {
+                        System.out.println("Waiting for clients...");
+                        Socket clientSocket = serverSocket.accept();
+                        ClientHandler clientHandler = new ClientHandler(clientSocket);
+                        pool.execute(clientHandler);
+                    } catch (IOException e) {
+                        System.out.println("Error connecting to client: " + e.getMessage());
+                    }
                 }
             }
         } catch (IOException e) {
-            System.out.println("Could not listen on port " + PORT + ": " + e.getMessage());
+            System.out.println("Could not listen on " + BIND_ADDRESS + ":" + PORT + ": " + e.getMessage());
         }
     }
 }
-
 class ClientHandler implements Runnable {
     private static ConcurrentHashMap<String, ClientHandler> handlers = new ConcurrentHashMap<>();
     private Socket clientSocket;
