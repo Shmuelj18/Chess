@@ -25,20 +25,20 @@ class Piece {
     }
 }
 
-public class ChessGame extends JFrame {
+public class ChessGamePlayable extends JFrame {
     private LinkedList<Piece> pieces = new LinkedList<>();
     private Image[] imgs = new Image[12];
     private Piece selectedPiece = null;
     private boolean whiteTurn = true;
 
-    public ChessGame() throws IOException {
+    public ChessGamePlayable() throws IOException {
         loadImages();
         initializePieces();
         setupFrame();
     }
 
     private void loadImages() throws IOException {
-        BufferedImage all = ImageIO.read(new File("C:\\chess.png"));
+        BufferedImage all = ImageIO.read(new File("C:\\Users\\zevbr\\OneDrive\\Documents\\GitHub\\Chess\\chess.png"));
         int ind = 0;
         for (int y = 0; y < 400; y += 200) {
             for (int x = 0; x < 1200; x += 200) {
@@ -329,7 +329,7 @@ public class ChessGame extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                new ChessGame();
+                new ChessGamePlayable();
             } catch (IOException e) {
                 e.printStackTrace();
             }

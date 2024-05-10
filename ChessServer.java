@@ -1,5 +1,7 @@
 import java.io.*;
 import java.net.*;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -38,10 +40,16 @@ class ClientHandler implements Runnable {
     private BufferedReader in;
     private ClientHandler opponent;
     private OnTurn moveControl;
+    private int startTime;
+    private int endTime;
+    private int timeHolder;
+    private LocalTime time;
 
     public ClientHandler(Socket clientSocket) {
         this.clientSocket = clientSocket;
         moveControl = new OnTurn();
+        timeHolder = 0;
+        //time = new LocalTime();
         try {
             out = new PrintWriter(clientSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -102,6 +110,9 @@ class ClientHandler implements Runnable {
                 this.out.println("\n"+moveControl.printBoard());
                 opponent.out.println("\n"+moveControl.printBoard()+"\ninput coordinates");    
                 this.opponent.moveControl = this.moveControl;
+                this.endTime = time.getMinute()+(time.getSecond()/60);
+                timeHolder =endTime-startTime;
+                this.opponent.startTime=time.getMinute()+(time.getSecond()/60);
                 break;
             }
             if (input.startsWith( "listPlayers")){
@@ -175,6 +186,7 @@ class ClientHandler implements Runnable {
        this.opponent.out.println(startBoard());
        this.moveControl = new OnTurn(this,this.opponent);
        this.opponent.moveControl = new OnTurn(this,this.opponent);
+       this.startTime = time.getMinute()+(time.getSecond()/60);
     }
 
    private void cleanup() {
@@ -227,6 +239,13 @@ class ClientHandler implements Runnable {
             }
         }
         return gameBoard;
+    }
+
+    public String moveTime(){
+        int minutes = timeHolder / 60;
+        int seconds = timeHolder % 60;
+        String formattedTime = minutes+":"+seconds;
+        return formattedTime;
     }
 
 }
